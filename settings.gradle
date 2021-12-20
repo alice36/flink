@@ -1,0 +1,14 @@
+pluginManagement {
+    def pluginRepositories = System.getenv('EULISA_GRADLE_PLUGIN_REPOSITORIES') ?: "${defaultGradlePluginRepositories}"
+
+    repositories {
+        pluginRepositories
+                .split(';')
+                .each { repository_url ->
+                    maven { url "${repository_url}" }
+                }
+    }
+}
+
+rootProject.name = 'FlinkAppPrometheus'
+

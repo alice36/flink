@@ -1,0 +1,13 @@
+jobmanager.rpc.address: localhost
+jobmanager.rpc.port: 6123
+jobmanager.heap.size: 128m
+taskmanager.memory.flink.size: 768m
+taskmanager.numberOfTaskSlots: 4
+parallelism.default: 1
+jobmanager.execution.failover-strategy: region
+metrics.reporters: prometheus
+metrics.reporter.prometheus.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+metrics.reporter.prometheus.port: 9999
+classloader.resolve-order: parent-first
+env.log.dir: /opt/flink/log
+logback.configurationFile: logback-console.xml

@@ -1,0 +1,112 @@
+---
+version: '3'
+
+services:
+
+  jobmanager:
+    image: apache/flink:1.12.1-scala_2.12-java11
+    ports:
+      - "8081:8081"
+      - "6123:6123"
+    command: jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+
+  taskmanager:
+    image: apache/flink:1.12.1-scala_2.12-java11
+    expose:
+      - "6121"
+      - "6122"
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    links:
+      - "jobmanager:jobmanager"
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+
+  deployer:
+    build: config
+    image: org.example/flinkappprometheus
+    depends_on:
+      - jobmanager
+      - taskmanager
+    # Deploy
+    command:
+      - "deploy"
+      - "--file-name"
+      - "/config/FlinkAppPrometheus-1.0-SNAPSHOT-all.jar"
+      - "--entry-class"
+      - "com.demo.Start"
+      - "--parallelism"
+      - "2"
+      - "--program-args"
+      - "--intervalMs 1000"
+    environment:
+      - FLINK_BASE_URL=http://jobmanager:8081
+    links:
+      - jobmanager
+#  job-cluster:
+#    build: config/.
+#    container_name: job-cluster
+#    ports:
+#    - "8081:8081"
+#    - "9249:9249"
+#    volumes:
+#    - state:/state
+##    command: standalone-job --job-classname Start --job-id 00000000000000000000000000000000
+#    environment:
+#    - |
+#      FLINK_PROPERTIES=
+#      jobmanager.rpc.address: job-cluster
+#      state.checkpoints.dir: file:///state
+
+#  taskmanager1:
+#    build: .
+#    container_name: taskmanager1
+#    ports:
+#    - "9250:9249"
+#    volumes:
+#    - state:/state
+#    command: taskmanager
+#    environment:
+#    - |
+#      FLINK_PROPERTIES=
+#      jobmanager.rpc.address: job-cluster
+#      state.checkpoints.dir: file:///state
+#
+#  taskmanager2:
+#    build: .
+#    container_name: taskmanager2
+#    ports:
+#    - "9251:9249"
+#    volumes:
+#    - state:/state
+#    command: taskmanager
+#    environment:
+#    - |
+#      FLINK_PROPERTIES=
+#      jobmanager.rpc.address: job-cluster
+#      state.checkpoints.dir: file:///state
+#
+#  prometheus:
+#    image: prom/prometheus:v2.29.1
+#    container_name: prometheus
+#    ports:
+#    - "9090:9090"
+#    volumes:
+#    - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    - ./prometheus/flink.rules.yml:/etc/prometheus/flink.rules.yml
+#
+#  grafana:
+#    image: grafana/grafana:8.1.2
+#    container_name: grafana
+#    ports:
+#    - "3000:3000"
+#    environment:
+#    - GF_SECURITY_ADMIN_PASSWORD=flink
+#    volumes:
+#    - ./grafana/provisioning/:/etc/grafana/provisioning/
+
+volumes:
+  state:

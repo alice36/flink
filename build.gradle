@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+    id 'com.palantir.docker' version '0.25.0'
+    id 'maven-publish'
+    id 'pl.allegro.tech.build.axion-release' version '1.11.0'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+
+    all*.exclude module: 'slf4j-log4j12'
+    all*.exclude module: 'slf4j-simple'
+    all*.exclude module: 'log4j-to-slf4j'
+    all*.exclude module: 'log4j-core'
+    all*.exclude module: 'log4j-jul'
+    all*.exclude module: 'log4j-slf4j-impl'
+    all*.exclude module: 'jul-to-slf4j'
+    all*.exclude module: 'log4j'
+}
+
+dependencies {
+    implementation "ch.qos.logback:logback-classic:1.2.6",
+            "org.apache.flink:flink-clients_2.12:1.14.1"
+//            "org.apache.flink:flink-java:1.14.0"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+
+
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+docker {
+    def isItRelease = project.version ==~ /[0-9]+\.[0-9]+\.[0-9]+/
+
+    def dockerRegistry = System.getenv('EULISA_DOCKER_REGISTRY') ?: "${defaultDockerRegistry}"
+    def dockerName = "${project.group}/${project.name}".toLowerCase()
+    def dockerTag = "${project.version}".toLowerCase()
+
+    name dockerName
+    tag 'current', "${dockerRegistry}/${dockerName}:${dockerTag}"
+    if (isItRelease) {
+        tag 'latest', "${dockerRegistry}/${dockerName}:latest"
+    }
+
+    dockerfile file('config/Dockerfile')
+    files shadowJar.archiveFile.get(),
+            'config/flink-conf.yaml',
+            'config/runTaskmanager.sh'
+
+    buildArgs([
+            dockerRegistry: "${dockerRegistry}",
+            jarFileName   : "${shadowJar.archiveFileName.get()}",
+            VCS_REF       : 'git rev-parse HEAD'.execute().text.trim(),
+            projectVersion: "${dockerTag}"
+    ])
+}
+
+test {
+    useJUnitPlatform()
+}
